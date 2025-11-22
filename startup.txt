@@ -1,1 +1,16 @@
-gunicorn --bind 0.0.0.0:8000 --worker-class aiohttp.GunicornWebWorker --timeout 600 app:app
+gunicorn --bind=0.0.0.0:8000 --timeout 600 --worker-class aiohttp.GunicornWebWorker app:app
+```
+
+## 5. .gitignore (optional but recommended)
+```
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+antenv/
+.vscode/
+.idea/
+*.log
