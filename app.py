@@ -4,34 +4,45 @@ from botbuilder.schema import Activity
 from bot import MonChatbotIoT
 import os
 
-# Configuration
-APP_ID = os.environ.get("MICROSOFT_APP_ID", "")
-APP_PASSWORD = os.environ.get("MICROSOFT_APP_PASSWORD", "")
+# Configuration: Use Azure's standard environment variable names (case-sensitive on Linux)
+APP_ID = os.environ.get("MicrosoftAppId", "")
+APP_PASSWORD = os.environ.get("MicrosoftAppPassword", "")
 
-# Créer l'adaptateur
+# Create adapter
 settings = BotFrameworkAdapterSettings(APP_ID, APP_PASSWORD)
 adapter = BotFrameworkAdapter(settings)
 
-# Créer le bot
+# Create bot instance
 bot = MonChatbotIoT()
 
-# Gérer les messages
+# Handle incoming /api/messages requests
 async def messages(req: web.Request) -> web.Response:
-    body = await req.json()
-    activity = Activity().deserialize(body)
-    auth_header = req.headers.get("Authorization", "")
-    
-    async def call_bot(turn_context):
-        await bot.on_turn(turn_context)
-    
-    await adapter.process_activity(activity, auth_header, call_bot)
-    return web.Response(status=200)
+    if "application/json" not in req.headers.get("Content-Type", ""):
+        return web.Response(status=415, text="Unsupported Media Type")
 
-# Créer le serveur web
+    try:
+        body = await req.json()
+        activity = Activity().deserialize(body)
+        auth_header = req.headers.get("Authorization", "")
+
+        # Process the activity with your bot
+        await adapter.process_activity(activity, auth_header, bot.on_turn)
+        return web.Response(status=200)
+
+    except ValueError as e:
+        # Bad JSON or deserialization error
+        print(f"JSON deserialization error: {e}")
+        return web.Response(status=400, text="Bad Request")
+    except Exception as e:
+        # Log any other error (e.g., auth failure, bot crash)
+        print(f"Error processing activity: {e}")
+        return web.Response(status=500, text="Internal Server Error")
+
+# Create aiohttp application
 app = web.Application()
 app.router.add_post("/api/messages", messages)
 
 if __name__ == "__main__":
-    # Azure uses PORT 8000
+    # Azure sets PORT automatically; fallback to 8000 for local testing
     port = int(os.environ.get("PORT", 8000))
     web.run_app(app, host="0.0.0.0", port=port)
