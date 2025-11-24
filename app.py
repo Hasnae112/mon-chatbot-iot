@@ -44,5 +44,5 @@ app.router.add_post("/api/messages", messages)
 
 if __name__ == "__main__":
     # Azure sets PORT automatically; fallback to 8000 for local testing
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("WEBSITES_PORT", 8000))
     web.run_app(app, host="0.0.0.0", port=port)
